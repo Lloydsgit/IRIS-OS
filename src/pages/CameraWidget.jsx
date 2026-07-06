@@ -1,8 +1,7 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, CameraOff, Scan, X, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { invokeLLM, uploadFile, hasApiKey } from "@/lib/apiClient";
 
 export default function CameraWidget() {
   const [active, setActive] = useState(false);
@@ -65,9 +64,13 @@ export default function CameraWidget() {
     setAnalysis("");
   }, []);
 
-  // Real AI vision analysis — upload snapshot, send to LLM with vision
+  // Real AI vision analysis — upload snapshot, send to LLM with vision via BYOK
   const analyzeSnapshot = useCallback(async () => {
     if (!snapshot) return;
+    if (!hasApiKey()) {
+      setError("No API key configured. Add your key in Settings.");
+      return;
+    }
     setAnalyzing(true);
     setAnalysis("");
     setError("");
@@ -75,15 +78,15 @@ export default function CameraWidget() {
       // Convert data URL to blob and upload
       const blob = await (await fetch(snapshot)).blob();
       const file = new File([blob], "snapshot.jpg", { type: "image/jpeg" });
-      const { file_url } = await db.integrations.Core.UploadFile({ file });
-      const res = await db.integrations.Core.InvokeLLM({
+      const { file_url } = await uploadFile(file);
+      const analysis = await invokeLLM({
         prompt: "You are IRIS Vision AI. Analyze this camera snapshot. Describe what you see: objects, text (OCR), scene, people count, colors, landmarks, any notable details. Be concise (max 4 lines). Address user as 'Sir'.",
-        file_urls: [file_url],
+        image_url: file_url,
       });
-      setAnalysis(typeof res === "string" ? res : res?.response || JSON.stringify(res));
+      setAnalysis(analysis);
     } catch (e) {
       const msg = e?.message || "Analysis failed";
-      setError(msg.includes("limit of integrations") ? "Integration credits exhausted — resets soon." : msg);
+      setError(msg.includes("No API key") ? "Configure API key in Settings." : msg);
     }
     setAnalyzing(false);
   }, [snapshot]);

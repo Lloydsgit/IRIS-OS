@@ -1,5 +1,3 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Mic, MicOff, Settings } from "lucide-react";
@@ -7,6 +5,7 @@ import VoiceBubble from "./VoiceBubble";
 
 import { useNavigate } from "react-router-dom";
 import { speak, stopSpeaking } from "@/lib/tts";
+import { invokeLLM, hasApiKey } from "@/lib/apiClient";
 
 const VOICE_PROFILES = [
   { id: "operator", label: "Operator", desc: "Professional & sharp", pitch: 0.95, rate: 1.0, intensity: 0.6 },
@@ -68,12 +67,19 @@ export default function VoiceControl({ navigate }) {
       setBubbleState("idle");
       return;
     }
-    // Send to IRIS LLM
+    
+    if (!hasApiKey()) {
+      setError("No API key configured. Please add your key in Settings.");
+      setBubbleState("alert");
+      setTimeout(() => setBubbleState("idle"), 2000);
+      return;
+    }
+    
+    // Send to IRIS LLM via BYOK
     try {
-      const res = await db.integrations.Core.InvokeLLM({
+      const text = await invokeLLM({
         prompt: `You are IRIS, a hyper-intelligent AI assistant. The user said: "${cmd}". Respond in maximum 3-4 lines. Address user as "Sir". Be direct and helpful.`,
       });
-      const text = typeof res === "string" ? res : res?.response || JSON.stringify(res);
       setBubbleState("speaking");
       doSpeak(text);
       // Return to idle after speaking
@@ -82,7 +88,7 @@ export default function VoiceControl({ navigate }) {
       }, Math.min(text.length * 80, 10000));
     } catch (e) {
       const msg = e?.message || "Connection failed";
-      setError(msg.includes("limit of integrations") ? "Credits exhausted." : msg);
+      setError(msg.includes("No API key") ? "Configure API key in Settings." : msg);
       setBubbleState("alert");
       setTimeout(() => setBubbleState("idle"), 2000);
     }

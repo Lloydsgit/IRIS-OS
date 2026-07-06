@@ -1,11 +1,10 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, X, Loader2 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
 import { speak, stopSpeaking } from "@/lib/tts";
+import { invokeLLM, hasApiKey } from "@/lib/apiClient";
 
 // Floating IRIS voice orb — 3D rotating, one-tap speech
 // Real STT (Web Speech API) → LLM (InvokeLLM) → TTS (ElevenLabs, never browser)
@@ -58,15 +57,22 @@ export default function FloatingIris() {
     setTranscript(cmd);
     setThinking(true);
     setError("");
+    
     if (handleNavigation(cmd)) {
       setThinking(false);
       return;
     }
+    
+    if (!hasApiKey()) {
+      setError("No API key configured. Please add your API key in Settings.");
+      setThinking(false);
+      return;
+    }
+    
     try {
-      const res = await db.integrations.Core.InvokeLLM({
+      const text = await invokeLLM({
         prompt: `You are IRIS, a hyper-intelligent AI assistant. The user said: "${cmd}". Respond in maximum 3-4 lines, address as "Sir". Be direct and helpful.`,
       });
-      const text = typeof res === "string" ? res : res?.response || JSON.stringify(res);
       setResponse(text);
       setThinking(false);
       setSpeaking(true);
@@ -74,7 +80,7 @@ export default function FloatingIris() {
       setSpeaking(false);
     } catch (e) {
       const msg = e?.message || "Connection failed";
-      setError(msg.includes("limit of integrations") ? "Credits exhausted — resets soon." : msg);
+      setError(msg.includes("No API key") ? "Configure API key in Settings." : msg);
       setThinking(false);
     }
   }, [handleNavigation]);

@@ -1,13 +1,12 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import { useState } from "react";
 
 import HudPanel from "../components/hud/HudPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Shield, Zap, Search, Loader2, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Shield, Zap, Search, Loader2, CheckCircle, AlertTriangle, XCircle, Key } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { invokeLLM, hasApiKey } from "@/lib/apiClient";
 
 export default function Tools() {
   return (
@@ -37,24 +36,28 @@ function PhishingChecker() {
 
   const check = async () => {
     if (!url.trim()) return;
+    if (!hasApiKey()) {
+      setError("No API key configured. Add your key in Settings.");
+      return;
+    }
     setLoading(true);
     setResult(null);
     setError(null);
     try {
-      const res = await db.integrations.Core.InvokeLLM({
-        prompt: `Analyze this URL for phishing/scam indicators. Check domain reputation patterns, common scam signs, and provide a safety verdict.\n\nURL: ${url}\n\nProvide: verdict (SAFE/CAUTION/DANGER), confidence (1-10), reasons (array of strings), recommendation.`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            verdict: { type: "string" },
-            confidence: { type: "number" },
-            reasons: { type: "array", items: { type: "string" } },
-            recommendation: { type: "string" },
-          },
-        },
-        add_context_from_internet: true,
+      const res = await invokeLLM({
+        prompt: `Analyze this URL for phishing/scam indicators. Check domain reputation patterns, common scam signs, and provide a safety verdict.\n\nURL: ${url}\n\nProvide: verdict (SAFE/CAUTION/DANGER), confidence (1-10), reasons (array of strings), recommendation. Respond in JSON format.`,
       });
-      setResult(res);
+      // Try to parse JSON response
+      try {
+        const jsonMatch = res.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          setResult(JSON.parse(jsonMatch[0]));
+        } else {
+          setResult({ verdict: "UNKNOWN", confidence: 5, reasons: [res], recommendation: "Could not parse response" });
+        }
+      } catch {
+        setResult({ verdict: "UNKNOWN", confidence: 5, reasons: [res], recommendation: "Response received" });
+      }
     } catch (e) {
       setError(e?.message || "Request failed");
     }
@@ -114,25 +117,28 @@ function ContentFactory() {
 
   const generate = async () => {
     if (!input.trim()) return;
+    if (!hasApiKey()) {
+      setError("No API key configured. Add your key in Settings.");
+      return;
+    }
     setLoading(true);
     setResult(null);
     setError(null);
     try {
-      const res = await db.integrations.Core.InvokeLLM({
-        prompt: `You are a content strategist for @tejas.unrealistic. Given this input, generate multi-format content.\n\nInput: ${input}\n\nGenerate: long_form_hook (compelling opening), short_hooks (5 short-form hooks for reels/shorts), caption (Instagram caption with hashtags), tweet_thread (3-5 tweet thread), email_subject and email_body (newsletter version).`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            long_form_hook: { type: "string" },
-            short_hooks: { type: "array", items: { type: "string" } },
-            caption: { type: "string" },
-            tweet_thread: { type: "array", items: { type: "string" } },
-            email_subject: { type: "string" },
-            email_body: { type: "string" },
-          },
-        },
+      const res = await invokeLLM({
+        prompt: `You are a content strategist. Given this input, generate multi-format content.\n\nInput: ${input}\n\nGenerate: long_form_hook (compelling opening), short_hooks (5 short-form hooks for reels/shorts), caption (Instagram caption with hashtags), tweet_thread (3-5 tweet thread), email_subject and email_body (newsletter version). Respond in JSON format.`,
       });
-      setResult(res);
+      // Try to parse JSON response
+      try {
+        const jsonMatch = res.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          setResult(JSON.parse(jsonMatch[0]));
+        } else {
+          setResult({ long_form_hook: res, short_hooks: [], caption: "", tweet_thread: [], email_subject: "", email_body: "" });
+        }
+      } catch {
+        setResult({ long_form_hook: res, short_hooks: [], caption: "", tweet_thread: [], email_subject: "", email_body: "" });
+      }
     } catch (e) {
       setError(e?.message || "Request failed");
     }
@@ -178,13 +184,16 @@ function LinkAnalyzer() {
 
   const analyze = async () => {
     if (!url.trim()) return;
+    if (!hasApiKey()) {
+      setError("No API key configured. Add your key in Settings.");
+      return;
+    }
     setLoading(true);
     setResult("");
     setError(null);
     try {
-      const res = await db.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Analyze this URL/article and provide a structured summary with: key takeaways, named entities, frameworks mentioned, action items, and non-obvious insights.\n\nURL: ${url}`,
-        add_context_from_internet: true,
       });
       setResult(res);
     } catch (e) {
@@ -228,13 +237,16 @@ function QuickResearch() {
 
   const research = async () => {
     if (!query.trim()) return;
+    if (!hasApiKey()) {
+      setError("No API key configured. Add your key in Settings.");
+      return;
+    }
     setLoading(true);
     setResult("");
     setError(null);
     try {
-      const res = await db.integrations.Core.InvokeLLM({
+      const res = await invokeLLM({
         prompt: `Run deep research on: ${query}\n\nProvide a structured operator report with:\n1. Executive summary (2-3 sentences)\n2. Key findings\n3. Sources and confidence levels\n4. Contradictions flagged\n5. Action items\n\nBe thorough and cite sources where possible.`,
-        add_context_from_internet: true,
       });
       setResult(res);
     } catch (e) {

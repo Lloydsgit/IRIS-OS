@@ -1,14 +1,48 @@
 import { useState } from "react";
 import { useTheme, THEMES } from "../lib/ThemeContext";
 import HudPanel from "../components/hud/HudPanel";
-import { Check, Target, Eye, Scale, Mic, Upload, GitBranch } from "lucide-react";
+import { Check, Target, Eye, Scale, Mic, Upload, GitBranch, Key, Globe, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { 
+  getStoredApiKey, saveApiKey, getStoredApiBase, saveApiBase,
+  getStoredLlmModel, saveLlmModel, LLM_MODELS, DEFAULT_API_BASE,
+  getStoredTtsKey, saveTtsKey, testConnection, hasApiKey 
+} from "../lib/apiClient";
 
 export default function Settings() {
   const { themeId, changeTheme } = useTheme();
   const [elKey, setElKey] = useState(() => localStorage.getItem("jarvis-el-key") || "");
   const [elSaving, setElSaving] = useState(false);
+
+  // BYOK Settings
+  const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const [apiBase, setApiBase] = useState(() => getStoredApiBase());
+  const [llmModel, setLlmModel] = useState(() => getStoredLlmModel());
+  const [ttsKey, setTtsKey] = useState(() => getStoredTtsKey());
+  const [byokSaving, setByokSaving] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handleByokSave = async () => {
+    saveApiKey(apiKey);
+    saveApiBase(apiBase);
+    saveLlmModel(llmModel);
+    saveTtsKey(ttsKey);
+    setByokSaving(true);
+    
+    // Test connection
+    const result = await testConnection();
+    setConnectionStatus(result);
+    
+    setTimeout(() => setByokSaving(false), 2000);
+  };
+
+  const handleTestConnection = async () => {
+    setConnectionStatus({ testing: true });
+    const result = await testConnection();
+    setConnectionStatus(result);
+  };
 
   return (
     <div className="h-full overflow-y-auto p-4 md:p-6">
@@ -58,6 +92,128 @@ export default function Settings() {
               );
             })}
           </div>
+        </HudPanel>
+
+        {/* BYOK - Bring Your Own API Key */}
+        <HudPanel title="AI Configuration (BYOK)">
+          <p className="text-[10px] font-mono text-muted-foreground/40 mb-4">
+            Connect your own API keys to power IRIS with your preferred AI services. Your keys are stored locally and never sent to our servers.
+          </p>
+          
+          {/* API Key */}
+          <div className="mb-4">
+            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+              <Key className="w-3 h-3 inline mr-1" />OpenAI API Key
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input 
+                  type={showApiKey ? "text" : "password"} 
+                  value={apiKey} 
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none pr-8"
+                  style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
+                />
+                <button 
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/40 hover:text-muted-foreground/70"
+                >
+                  {showApiKey ? "HIDE" : "SHOW"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* API Base URL */}
+          <div className="mb-4">
+            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+              <Globe className="w-3 h-3 inline mr-1" />API Base URL
+            </label>
+            <input 
+              type="text" 
+              value={apiBase} 
+              onChange={e => setApiBase(e.target.value)}
+              placeholder={DEFAULT_API_BASE}
+              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
+              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
+            />
+            <p className="text-[9px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
+              Default: OpenAI. Use for compatible APIs (OpenRouter, Groq, etc.)
+            </p>
+          </div>
+
+          {/* LLM Model */}
+          <div className="mb-4">
+            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+              <Sparkles className="w-3 h-3 inline mr-1" />LLM Model
+            </label>
+            <select 
+              value={llmModel} 
+              onChange={e => setLlmModel(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
+              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }}
+            >
+              {LLM_MODELS.map(model => (
+                <option key={model.id} value={model.id}>{model.name} ({model.provider})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ElevenLabs Key (separate for TTS) */}
+          <div className="mb-4">
+            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+              <Mic className="w-3 h-3 inline mr-1" />ElevenLabs API Key (Optional)
+            </label>
+            <input 
+              type="password" 
+              value={ttsKey} 
+              onChange={e => setTtsKey(e.target.value)}
+              placeholder="sk_..."
+              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
+              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
+            />
+            <p className="text-[9px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
+              For premium voice synthesis. Get free key at elevenlabs.io
+            </p>
+          </div>
+
+          {/* Status & Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t" style={{ borderColor: "rgba(200,30,30,0.1)" }}>
+            <button 
+              onClick={handleTestConnection}
+              disabled={!apiKey || connectionStatus?.testing}
+              className="px-3 py-1.5 rounded-lg text-[9px] font-mono transition-all disabled:opacity-50"
+              style={{ background: "rgba(200,30,30,0.1)", border: "1px solid rgba(200,30,30,0.2)", color: "rgba(255,120,120,0.7)" }}
+            >
+              {connectionStatus?.testing ? "TESTING..." : "TEST CONNECTION"}
+            </button>
+            <button 
+              onClick={handleByokSave}
+              className="px-3 py-1.5 rounded-lg text-[9px] font-mono transition-all"
+              style={{ 
+                background: byokSaving ? "rgba(80,255,120,0.2)" : "rgba(200,30,30,0.2)", 
+                border: `1px solid ${byokSaving ? "rgba(80,255,120,0.3)" : "rgba(200,30,30,0.25)"}`, 
+                color: byokSaving ? "rgba(80,255,120,0.8)" : "rgba(255,120,120,0.7)" 
+              }}
+            >
+              {byokSaving ? "SAVED ✓" : "SAVE KEYS"}
+            </button>
+            
+            {connectionStatus && (
+              <span className="ml-auto text-[9px] font-mono" 
+                style={{ color: connectionStatus.success ? "rgba(80,255,120,0.7)" : "rgba(255,80,80,0.7)" }}>
+                {connectionStatus.success ? "✓ Connected" : `✗ ${connectionStatus.error}`}
+              </span>
+            )}
+          </div>
+
+          {hasApiKey() && (
+            <div className="mt-3 flex items-center gap-2 text-[9px] font-mono" style={{ color: "rgba(80,255,120,0.5)" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+              API Key configured
+            </div>
+          )}
         </HudPanel>
 
         {/* Advanced sections */}
