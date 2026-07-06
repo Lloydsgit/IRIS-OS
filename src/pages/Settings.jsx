@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useTheme, THEMES } from "../lib/ThemeContext";
 import HudPanel from "../components/hud/HudPanel";
-import { Check, Target, Eye, Scale, Mic, Upload, GitBranch, Key, Globe, Sparkles } from "lucide-react";
+import { Check, Target, Eye, Scale, Mic, Upload, GitBranch, Key, Globe, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   getStoredApiKey, saveApiKey, getStoredApiBase, saveApiBase,
   getStoredLlmModel, saveLlmModel, LLM_MODELS, DEFAULT_API_BASE,
-  getStoredTtsKey, saveTtsKey, testConnection, hasApiKey 
+  getStoredTtsKey, saveTtsKey, testConnection, hasApiKey,
+  getAutoModelEnabled, saveAutoModelEnabled
 } from "../lib/apiClient";
 
 export default function Settings() {
@@ -20,6 +21,7 @@ export default function Settings() {
   const [apiBase, setApiBase] = useState(() => getStoredApiBase());
   const [llmModel, setLlmModel] = useState(() => getStoredLlmModel());
   const [ttsKey, setTtsKey] = useState(() => getStoredTtsKey());
+  const [autoModel, setAutoModel] = useState(() => getAutoModelEnabled());
   const [byokSaving, setByokSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -29,6 +31,7 @@ export default function Settings() {
     saveApiBase(apiBase);
     saveLlmModel(llmModel);
     saveTtsKey(ttsKey);
+    saveAutoModelEnabled(autoModel);
     setByokSaving(true);
     
     // Test connection
@@ -94,16 +97,32 @@ export default function Settings() {
           </div>
         </HudPanel>
 
-        {/* BYOK - Bring Your Own API Key */}
-        <HudPanel title="AI Configuration (BYOK)">
+        {/* BYOK - Bring Your Own API Key with OpenRouter */}
+        <HudPanel title="AI Configuration (OpenRouter)">
           <p className="text-[10px] font-mono text-muted-foreground/40 mb-4">
-            Connect your own API keys to power IRIS with your preferred AI services. Your keys are stored locally and never sent to our servers.
+            Connect to OpenRouter for access to open source LLMs. Keys stored locally.
           </p>
+          
+          {/* OpenRouter Link */}
+          <div className="mb-4 p-3 rounded-lg" style={{ background: "rgba(200,30,30,0.05)", border: "1px solid rgba(200,30,30,0.15)" }}>
+            <p className="text-[9px] font-mono mb-2" style={{ color: "rgba(255,200,200,0.6)" }}>
+              Get your OpenRouter API key for access to Claude, Gemini, Llama, Mistral & more.
+            </p>
+            <a 
+              href="https://openrouter.ai/keys" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[9px] font-mono px-3 py-1.5 rounded inline-block"
+              style={{ background: "rgba(200,30,30,0.15)", color: "rgba(255,120,120,0.8)" }}
+            >
+              Get OpenRouter Key →
+            </a>
+          </div>
           
           {/* API Key */}
           <div className="mb-4">
             <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
-              <Key className="w-3 h-3 inline mr-1" />OpenAI API Key
+              <Key className="w-3 h-3 inline mr-1" />API Key
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -111,7 +130,7 @@ export default function Settings() {
                   type={showApiKey ? "text" : "password"} 
                   value={apiKey} 
                   onChange={e => setApiKey(e.target.value)}
-                  placeholder="sk-..."
+                  placeholder="sk-or-..."
                   className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none pr-8"
                   style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
                 />
@@ -125,40 +144,69 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* API Base URL */}
-          <div className="mb-4">
-            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
-              <Globe className="w-3 h-3 inline mr-1" />API Base URL
-            </label>
-            <input 
-              type="text" 
-              value={apiBase} 
-              onChange={e => setApiBase(e.target.value)}
-              placeholder={DEFAULT_API_BASE}
-              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
-              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
-            />
-            <p className="text-[9px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
-              Default: OpenAI. Use for compatible APIs (OpenRouter, Groq, etc.)
-            </p>
+          {/* Auto Model Selection */}
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block">
+                <Zap className="w-3 h-3 inline mr-1" />Auto-Select Model
+              </label>
+              <p className="text-[8px] font-mono mt-0.5" style={{ color: "rgba(180,80,80,0.4)" }}>
+                Automatically picks best model for each task
+              </p>
+            </div>
+            <button
+              onClick={() => setAutoModel(!autoModel)}
+              className="relative w-12 h-6 rounded-full transition-all"
+              style={{ 
+                background: autoModel ? "rgba(80,255,120,0.3)" : "rgba(100,100,100,0.2)",
+                border: `1px solid ${autoModel ? "rgba(80,255,120,0.4)" : "rgba(100,100,100,0.3)"}`
+              }}
+            >
+              <div 
+                className="absolute top-0.5 w-5 h-5 rounded-full transition-all"
+                style={{ 
+                  background: autoModel ? "#50FF78" : "#666",
+                  left: autoModel ? "24px" : "2px",
+                }}
+              />
+            </button>
           </div>
 
-          {/* LLM Model */}
-          <div className="mb-4">
-            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
-              <Sparkles className="w-3 h-3 inline mr-1" />LLM Model
-            </label>
-            <select 
-              value={llmModel} 
-              onChange={e => setLlmModel(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
-              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }}
-            >
-              {LLM_MODELS.map(model => (
-                <option key={model.id} value={model.id}>{model.name} ({model.provider})</option>
-              ))}
-            </select>
-          </div>
+          {/* LLM Model (when not auto) */}
+          {!autoModel && (
+            <div className="mb-4">
+              <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+                <Sparkles className="w-3 h-3 inline mr-1" />LLM Model
+              </label>
+              <select 
+                value={llmModel} 
+                onChange={e => setLlmModel(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
+                style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }}
+              >
+                <optgroup label="🏆 Most Capable">
+                  {LLM_MODELS.filter(m => m.tier === 1).map(model => (
+                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🚀 Fast & Smart">
+                  {LLM_MODELS.filter(m => m.tier === 2).map(model => (
+                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="💡 Free & Open Source">
+                  {LLM_MODELS.filter(m => m.tier === 3).map(model => (
+                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="⚡ Ultra Fast">
+                  {LLM_MODELS.filter(m => m.tier === 4).map(model => (
+                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+          )}
 
           {/* ElevenLabs Key (separate for TTS) */}
           <div className="mb-4">
@@ -203,7 +251,7 @@ export default function Settings() {
             {connectionStatus && (
               <span className="ml-auto text-[9px] font-mono" 
                 style={{ color: connectionStatus.success ? "rgba(80,255,120,0.7)" : "rgba(255,80,80,0.7)" }}>
-                {connectionStatus.success ? "✓ Connected" : `✗ ${connectionStatus.error}`}
+                {connectionStatus.success ? `✓ ${connectionStatus.provider || 'Connected'}` : `✗ ${connectionStatus.error}`}
               </span>
             )}
           </div>
@@ -211,7 +259,7 @@ export default function Settings() {
           {hasApiKey() && (
             <div className="mt-3 flex items-center gap-2 text-[9px] font-mono" style={{ color: "rgba(80,255,120,0.5)" }}>
               <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-              API Key configured
+              API Key configured - {autoModel ? "Auto-select enabled" : "Manual model"}
             </div>
           )}
         </HudPanel>

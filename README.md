@@ -8,14 +8,16 @@ AI Operating System - Your Intelligent Personal Assistant
 
 ## Features
 
-- 🗣️ **Voice Control** - Speak to IRIS with natural language commands
-- 🤖 **AI Integration** - Powered by OpenAI GPT models
-- 🎙️ **Text-to-Speech** - ElevenLabs voices for realistic responses
-- 📊 **Dashboard** - Monitor goals, decisions, watchlists, and more
-- 🔍 **Deep Research** - AI-powered research tools
-- 🛡️ **Security Tools** - Phishing detection, link analysis
-- 📸 **Vision Module** - AI-powered camera analysis
-- 🎨 **HUD Interface** - Futuristic Arc Reactor-inspired UI
+- **Voice Control** - Speak to IRIS with natural language commands
+- **OpenRouter Integration** - Access to Claude, Gemini, Llama, Mistral & more
+- **Auto Model Selection** - AI automatically picks the best model for each task
+- **Open Source LLMs** - Use free models like Llama, Mistral, Qwen
+- **Text-to-Speech** - ElevenLabs voices for realistic responses
+- **Dashboard** - Monitor goals, decisions, watchlists, and more
+- **Deep Research** - AI-powered research tools
+- **Security Tools** - Phishing detection, link analysis
+- **Vision Module** - AI-powered camera analysis
+- **HUD Interface** - Futuristic Arc Reactor-inspired UI
 
 ## Quick Start
 
@@ -34,12 +36,15 @@ npm install
 
 ### 3. Configure API Keys
 
-IRIS OS uses **BYOK (Bring Your Own Key)** - you provide your own API keys:
+IRIS OS uses **OpenRouter** for AI - you provide your own API key:
 
-1. Get an OpenAI API key from [platform.openai.com](https://platform.openai.com)
+1. Get an OpenRouter API key from [openrouter.ai/keys](https://openrouter.ai/keys)
+   - OpenRouter gives **$1 free credits** on signup
+   - Supports Claude, Gemini, GPT-4, Llama, Mistral & more
 2. (Optional) Get an ElevenLabs API key from [elevenlabs.io](https://elevenlabs.io) for premium voice
 3. Open the app and go to **Settings → AI Configuration**
-4. Enter your API keys and click **Save Keys**
+4. Enter your API key and click **Save Keys**
+5. Enable **Auto-Select Model** for best experience
 
 ### 4. Run Locally
 
@@ -48,6 +53,19 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## OpenRouter Models
+
+The app supports these model tiers:
+
+| Tier | Models | Use Case |
+|------|--------|----------|
+| **Most Capable** | Claude 3.5 Sonnet, Gemini 2.0, GPT-4o | Complex reasoning, analysis |
+| **Fast & Smart** | Claude 3 Haiku, Gemini 1.5 Pro, Llama 3.1 70B | General purpose |
+| **Free & Open Source** | Llama 3.2, Mistral 7B, Qwen 72B, Phi-3 | Budget-friendly |
+| **Ultra Fast** | GPT-4o Mini, Gemini Flash 1.5 | Quick responses |
+
+Enable **Auto-Select** to let IRIS pick the best model for each task.
 
 ## Deploy to Vercel
 
@@ -83,8 +101,9 @@ Set these in Vercel Dashboard → Settings → Environment Variables:
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_OPENAI_API_KEY` | Your OpenAI API key |
+| `VITE_OPENROUTER_API_KEY` | Your OpenRouter API key |
 | `VITE_ELEVENLABS_API_KEY` | Your ElevenLabs API key |
+| `VITE_LLM_MODEL` | Default model (optional) |
 
 ## Project Structure
 
@@ -103,7 +122,7 @@ IRIS-OS/
 │   │   ├── ui/           # UI components (shadcn/ui)
 │   │   └── voice/        # Voice control components
 │   ├── lib/
-│   │   ├── apiClient.js  # BYOK API functions
+│   │   ├── apiClient.js  # BYOK/OpenRouter API functions
 │   │   ├── AuthContext.jsx
 │   │   ├── ThemeContext.jsx
 │   │   ├── tts.js        # Text-to-speech
@@ -122,10 +141,10 @@ IRIS-OS/
 ## Tech Stack
 
 - **Frontend**: React 18 + Vite
+- **AI**: OpenRouter API (Claude, Gemini, Llama, Mistral, etc.)
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Animations**: Framer Motion
 - **Routing**: React Router v6
-- **AI**: OpenAI API (GPT-4o)
 - **TTS**: ElevenLabs / OpenAI TTS
 - **Deployment**: Vercel
 
