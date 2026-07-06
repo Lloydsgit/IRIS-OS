@@ -51,6 +51,45 @@ export const MODEL_PRESETS = [
   { id: "free", name: "Free", description: "Open source models" },
 ];
 
+// Local LLM Models (Ollama/LM Studio - no API key needed)
+export const LOCAL_MODELS = [
+  { id: "llama3", name: "Llama 3", description: "Meta's latest", context: 8192 },
+  { id: "llama3.1", name: "Llama 3.1", description: "Meta's 8B model", context: 128000 },
+  { id: "llama3.2", name: "Llama 3.2", description: "Meta's vision model", context: 128000, supports_vision: true },
+  { id: "mistral", name: "Mistral 7B", description: "Efficient & fast", context: 8192 },
+  { id: "mixtral", name: "Mixtral 8x7B", description: "MoE model", context: 32768 },
+  { id: "phi3", name: "Phi-3", description: "Microsoft's efficient model", context: 4096 },
+  { id: "qwen2.5", name: "Qwen 2.5", description: "Alibaba's model", context: 32768 },
+  { id: "gemma2", name: "Gemma 2", description: "Google's open model", context: 8192 },
+  { id: "codellama", name: "Code Llama", description: "For code assistance", context: 16384 },
+  { id: "nomic-embed-text", name: "Nomic Embed", description: "For embeddings", context: 8192 },
+];
+
+// Local LLM Providers
+export const LOCAL_PROVIDERS = [
+  { id: "ollama", name: "Ollama", baseUrl: "http://localhost:11434/v1", description: "Run locally" },
+  { id: "lmstudio", name: "LM Studio", baseUrl: "http://localhost:1234/v1", description: "Run locally" },
+  { id: "lmstudio-local", name: "LM Studio (Alt)", baseUrl: "http://localhost:8000/v1", description: "Run locally" },
+];
+
+// Provider type: 'openrouter', 'openai', 'local'
+export function getProviderType() {
+  const apiBase = getStoredApiBase();
+  const apiKey = getStoredApiKey();
+  
+  if (apiBase.includes("localhost") || apiBase.includes("ollama") || apiBase.includes("lmstudio")) {
+    return "local";
+  }
+  if (apiKey.startsWith("sk-or-")) {
+    return "openrouter";
+  }
+  return "openai";
+}
+
+export function isLocalProvider() {
+  return getProviderType() === "local";
+}
+
 // TTS Providers
 export const TTS_PROVIDERS = [
   { id: "openai", name: "OpenAI TTS", baseUrl: "https://api.openai.com/v1" },
@@ -101,6 +140,8 @@ export function saveAutoModelEnabled(enabled) {
 
 // Checkers
 export function hasApiKey() {
+  // Local providers don't need API key
+  if (isLocalProvider()) return true;
   return getStoredApiKey().length > 10;
 }
 

@@ -8,7 +8,8 @@ import {
   getStoredApiKey, saveApiKey, getStoredApiBase, saveApiBase,
   getStoredLlmModel, saveLlmModel, LLM_MODELS, DEFAULT_API_BASE,
   getStoredTtsKey, saveTtsKey, testConnection, hasApiKey,
-  getAutoModelEnabled, saveAutoModelEnabled
+  getAutoModelEnabled, saveAutoModelEnabled,
+  LOCAL_MODELS, LOCAL_PROVIDERS, getProviderType
 } from "../lib/apiClient";
 
 export default function Settings() {
@@ -98,51 +99,101 @@ export default function Settings() {
         </HudPanel>
 
         {/* BYOK - Bring Your Own API Key with OpenRouter */}
-        <HudPanel title="AI Configuration (OpenRouter)">
+        <HudPanel title="AI Configuration">
           <p className="text-[10px] font-mono text-muted-foreground/40 mb-4">
-            Connect to OpenRouter for access to open source LLMs. Keys stored locally.
+            Connect to OpenRouter or use local LLMs (Ollama/LM Studio). Keys stored locally.
           </p>
           
-          {/* OpenRouter Link */}
-          <div className="mb-4 p-3 rounded-lg" style={{ background: "rgba(200,30,30,0.05)", border: "1px solid rgba(200,30,30,0.15)" }}>
-            <p className="text-[9px] font-mono mb-2" style={{ color: "rgba(255,200,200,0.6)" }}>
-              Get your OpenRouter API key for access to Claude, Gemini, Llama, Mistral & more.
-            </p>
-            <a 
-              href="https://openrouter.ai/keys" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[9px] font-mono px-3 py-1.5 rounded inline-block"
-              style={{ background: "rgba(200,30,30,0.15)", color: "rgba(255,120,120,0.8)" }}
-            >
-              Get OpenRouter Key →
-            </a>
-          </div>
-          
-          {/* API Key */}
+          {/* Provider Selection */}
           <div className="mb-4">
             <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
-              <Key className="w-3 h-3 inline mr-1" />API Key
+              Provider Type
             </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input 
-                  type={showApiKey ? "text" : "password"} 
-                  value={apiKey} 
-                  onChange={e => setApiKey(e.target.value)}
-                  placeholder="sk-or-..."
-                  className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none pr-8"
-                  style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
-                />
-                <button 
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/40 hover:text-muted-foreground/70"
-                >
-                  {showApiKey ? "HIDE" : "SHOW"}
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { setApiBase("https://openrouter.ai/api/v1"); setApiKey(""); }}
+                className="px-3 py-2 rounded-lg text-[9px] font-mono transition-all"
+                style={{ 
+                  background: apiBase.includes("openrouter") ? "rgba(200,30,30,0.2)" : "rgba(100,100,100,0.1)",
+                  border: `1px solid ${apiBase.includes("openrouter") ? "rgba(200,30,30,0.4)" : "rgba(100,100,100,0.2)"}`,
+                  color: apiBase.includes("openrouter") ? "rgba(255,120,120,0.9)" : "rgba(255,255,255,0.4)"
+                }}
+              >
+                OpenRouter
+              </button>
+              <button
+                onClick={() => { setApiBase("http://localhost:11434/v1"); setApiKey("local"); }}
+                className="px-3 py-2 rounded-lg text-[9px] font-mono transition-all"
+                style={{ 
+                  background: apiBase.includes("localhost") ? "rgba(80,200,80,0.2)" : "rgba(100,100,100,0.1)",
+                  border: `1px solid ${apiBase.includes("localhost") ? "rgba(80,200,80,0.4)" : "rgba(100,100,100,0.2)"}`,
+                  color: apiBase.includes("localhost") ? "rgba(80,220,80,0.9)" : "rgba(255,255,255,0.4)"
+                }}
+              >
+                Local (Free)
+              </button>
             </div>
           </div>
+
+          {/* API Base URL */}
+          <div className="mb-4">
+            <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+              <Globe className="w-3 h-3 inline mr-1" />API Base URL
+            </label>
+            <input 
+              type="text" 
+              value={apiBase} 
+              onChange={e => setApiBase(e.target.value)}
+              placeholder={DEFAULT_API_BASE}
+              className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
+              style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
+            />
+            <p className="text-[8px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
+              OpenRouter: https://openrouter.ai/api/v1 | Ollama: http://localhost:11434/v1 | LM Studio: http://localhost:1234/v1
+            </p>
+          </div>
+
+          {/* API Key (for OpenRouter) */}
+          {apiBase.includes("openrouter") && (
+            <div className="mb-4">
+              <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
+                <Key className="w-3 h-3 inline mr-1" />OpenRouter API Key
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input 
+                    type={showApiKey ? "text" : "password"} 
+                    value={apiKey} 
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="sk-or-..."
+                    className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none pr-8"
+                    style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
+                  />
+                  <button 
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/40 hover:text-muted-foreground/70"
+                  >
+                    {showApiKey ? "HIDE" : "SHOW"}
+                  </button>
+                </div>
+              </div>
+              <p className="text-[8px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
+                Get free key: <a href="https://openrouter.ai/keys" target="_blank" className="underline">openrouter.ai/keys</a>
+              </p>
+            </div>
+          )}
+
+          {/* Local Model Info */}
+          {apiBase.includes("localhost") && (
+            <div className="mb-4 p-3 rounded-lg" style={{ background: "rgba(80,200,80,0.05)", border: "1px solid rgba(80,200,80,0.15)" }}>
+              <p className="text-[9px] font-mono mb-2" style={{ color: "rgba(80,220,80,0.7)" }}>
+                Local LLM Mode - No API key needed!
+              </p>
+              <p className="text-[8px] font-mono" style={{ color: "rgba(180,180,180,0.5)" }}>
+                Make sure Ollama or LM Studio is running locally. Default models: llama3, mistral, phi3, etc.
+              </p>
+            </div>
+          )}
 
           {/* Auto Model Selection */}
           <div className="mb-4 flex items-center justify-between">
@@ -184,31 +235,36 @@ export default function Settings() {
                 className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
                 style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }}
               >
-                <optgroup label="🏆 Most Capable">
-                  {LLM_MODELS.filter(m => m.tier === 1).map(model => (
-                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="🚀 Fast & Smart">
-                  {LLM_MODELS.filter(m => m.tier === 2).map(model => (
-                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="💡 Free & Open Source">
-                  {LLM_MODELS.filter(m => m.tier === 3).map(model => (
-                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="⚡ Ultra Fast">
-                  {LLM_MODELS.filter(m => m.tier === 4).map(model => (
-                    <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
-                  ))}
-                </optgroup>
+                {apiBase.includes("localhost") ? (
+                  <optgroup label="Local Models (Ollama/LM Studio)">
+                    {LOCAL_MODELS.map(model => (
+                      <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <>
+                    <optgroup label="Most Capable">
+                      {LLM_MODELS.filter(m => m.tier === 1).map(model => (
+                        <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Fast & Smart">
+                      {LLM_MODELS.filter(m => m.tier === 2).map(model => (
+                        <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Free & Open Source">
+                      {LLM_MODELS.filter(m => m.tier === 3).map(model => (
+                        <option key={model.id} value={model.id}>{model.name} - {model.description}</option>
+                      ))}
+                    </optgroup>
+                  </>
+                )}
               </select>
             </div>
           )}
 
-          {/* ElevenLabs Key (separate for TTS) */}
+          {/* ElevenLabs Key */}
           <div className="mb-4">
             <label className="text-[9px] font-mono text-muted-foreground/60 tracking-wider uppercase block mb-1.5">
               <Mic className="w-3 h-3 inline mr-1" />ElevenLabs API Key (Optional)
@@ -221,16 +277,13 @@ export default function Settings() {
               className="w-full px-3 py-1.5 rounded-lg text-xs font-mono focus:outline-none"
               style={{ background: "rgba(20,4,4,0.7)", border: "1px solid rgba(200,30,30,0.15)", color: "rgba(255,200,200,0.8)" }} 
             />
-            <p className="text-[9px] font-mono mt-1" style={{ color: "rgba(180,80,80,0.35)" }}>
-              For premium voice synthesis. Get free key at elevenlabs.io
-            </p>
           </div>
 
           {/* Status & Actions */}
           <div className="flex items-center gap-2 pt-2 border-t" style={{ borderColor: "rgba(200,30,30,0.1)" }}>
             <button 
               onClick={handleTestConnection}
-              disabled={!apiKey || connectionStatus?.testing}
+              disabled={connectionStatus?.testing}
               className="px-3 py-1.5 rounded-lg text-[9px] font-mono transition-all disabled:opacity-50"
               style={{ background: "rgba(200,30,30,0.1)", border: "1px solid rgba(200,30,30,0.2)", color: "rgba(255,120,120,0.7)" }}
             >
@@ -245,23 +298,16 @@ export default function Settings() {
                 color: byokSaving ? "rgba(80,255,120,0.8)" : "rgba(255,120,120,0.7)" 
               }}
             >
-              {byokSaving ? "SAVED ✓" : "SAVE KEYS"}
+              {byokSaving ? "SAVED" : "SAVE"}
             </button>
             
             {connectionStatus && (
               <span className="ml-auto text-[9px] font-mono" 
                 style={{ color: connectionStatus.success ? "rgba(80,255,120,0.7)" : "rgba(255,80,80,0.7)" }}>
-                {connectionStatus.success ? `✓ ${connectionStatus.provider || 'Connected'}` : `✗ ${connectionStatus.error}`}
+                {connectionStatus.success ? "Connected" : connectionStatus.error}
               </span>
             )}
           </div>
-
-          {hasApiKey() && (
-            <div className="mt-3 flex items-center gap-2 text-[9px] font-mono" style={{ color: "rgba(80,255,120,0.5)" }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-              API Key configured - {autoModel ? "Auto-select enabled" : "Manual model"}
-            </div>
-          )}
         </HudPanel>
 
         {/* Advanced sections */}
