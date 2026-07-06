@@ -1,41 +1,142 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+# IRIS OS
 
-**Welcome to your Base44 project** 
+AI Operating System - Your Intelligent Personal Assistant
 
-**About**
+![IRIS OS](https://img.shields.io/badge/Version-1.0.0-red?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Vercel-black?style=for-the-badge)
+![Framework](https://img.shields.io/badge/Framework-Vite-646CFF?style=for-the-badge)
 
-View and Edit  your app on [db.com](http://db.com) 
+## Features
 
-This project contains everything you need to run your app locally.
+- 🗣️ **Voice Control** - Speak to IRIS with natural language commands
+- 🤖 **AI Integration** - Powered by OpenAI GPT models
+- 🎙️ **Text-to-Speech** - ElevenLabs voices for realistic responses
+- 📊 **Dashboard** - Monitor goals, decisions, watchlists, and more
+- 🔍 **Deep Research** - AI-powered research tools
+- 🛡️ **Security Tools** - Phishing detection, link analysis
+- 📸 **Vision Module** - AI-powered camera analysis
+- 🎨 **HUD Interface** - Futuristic Arc Reactor-inspired UI
 
-**Edit the code in your local development environment**
+## Quick Start
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+### 1. Clone the Repository
 
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.db.app
+```bash
+git clone https://github.com/Lloydsgit/IRIS-OS.git
+cd IRIS-OS
 ```
 
-Run the app: `npm run dev`
+### 2. Install Dependencies
 
-**Publish your changes**
+```bash
+npm install
+```
 
-Open [db.com](http://db.com) and click on Publish.
+### 3. Configure API Keys
 
-**Docs & Support**
+IRIS OS uses **BYOK (Bring Your Own Key)** - you provide your own API keys:
 
-Documentation: [https://docs.db.com/Integrations/Using-GitHub](https://docs.db.com/Integrations/Using-GitHub)
+1. Get an OpenAI API key from [platform.openai.com](https://platform.openai.com)
+2. (Optional) Get an ElevenLabs API key from [elevenlabs.io](https://elevenlabs.io) for premium voice
+3. Open the app and go to **Settings → AI Configuration**
+4. Enter your API keys and click **Save Keys**
 
-Support: [https://app.db.com/support](https://app.db.com/support)
+### 4. Run Locally
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## Deploy to Vercel
+
+### One-Click Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Lloydsgit/IRIS-OS)
+
+### Manual Deploy
+
+1. Install Vercel CLI:
+   ```bash
+   npm i -g vercel
+   ```
+
+2. Login to Vercel:
+   ```bash
+   vercel login
+   ```
+
+3. Deploy:
+   ```bash
+   vercel
+   ```
+
+   For production:
+   ```bash
+   vercel --prod
+   ```
+
+### Environment Variables (Optional)
+
+Set these in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_OPENAI_API_KEY` | Your OpenAI API key |
+| `VITE_ELEVENLABS_API_KEY` | Your ElevenLabs API key |
+
+## Project Structure
+
+```
+IRIS-OS/
+├── public/
+│   ├── iris-icon.svg      # App icon
+│   └── manifest.json      # PWA manifest
+├── src/
+│   ├── api/
+│   │   └── base44Client.js    # API client (BYOK)
+│   ├── components/
+│   │   ├── chat/         # Chat components
+│   │   ├── dashboard/    # Dashboard widgets
+│   │   ├── hud/          # HUD interface components
+│   │   ├── ui/           # UI components (shadcn/ui)
+│   │   └── voice/        # Voice control components
+│   ├── lib/
+│   │   ├── apiClient.js  # BYOK API functions
+│   │   ├── AuthContext.jsx
+│   │   ├── ThemeContext.jsx
+│   │   ├── tts.js        # Text-to-speech
+│   │   └── utils.js
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── Settings.jsx
+│   │   ├── Tools.jsx
+│   │   └── ...
+│   └── App.jsx
+├── vercel.json           # Vercel configuration
+├── vite.config.js        # Vite configuration
+└── package.json
+```
+
+## Tech Stack
+
+- **Frontend**: React 18 + Vite
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Animations**: Framer Motion
+- **Routing**: React Router v6
+- **AI**: OpenAI API (GPT-4o)
+- **TTS**: ElevenLabs / OpenAI TTS
+- **Deployment**: Vercel
+
+## License
+
+MIT License - See LICENSE file for details.
+
+## Support
+
+For issues and feature requests, please open a GitHub issue.
+
+---
+
+Built with ❤️ by [Tejas Reddy](https://github.com/Lloydsgit)

@@ -1,0 +1,16 @@
+{
+  "name": "IRIS OS",
+  "short_name": "IRIS",
+  "description": "AI Operating System - Your Intelligent Assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0202",
+  "theme_color": "#C8102E",
+  "icons": [
+    {
+      "src": "/iris-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

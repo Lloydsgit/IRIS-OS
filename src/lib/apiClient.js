@@ -1,5 +1,6 @@
 // BYOK API Client - Bring Your Own API Key
 // Uses user's own API keys for LLM, STT, and TTS services
+// Supports both localStorage (browser) and environment variables (Vercel)
 
 const API_KEY_STORAGE = "iris_byok_api_key";
 const API_BASE_STORAGE = "iris_byok_api_base";
@@ -7,6 +8,12 @@ const LLM_MODEL_STORAGE = "iris_byok_llm_model";
 const TTS_KEY_STORAGE = "iris_byok_tts_key";
 
 export const DEFAULT_API_BASE = "https://api.openai.com/v1";
+
+// Environment variable support for Vercel deployment
+const ENV_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+const ENV_API_BASE = import.meta.env.VITE_OPENAI_API_BASE;
+const ENV_LLM_MODEL = import.meta.env.VITE_LLM_MODEL;
+const ENV_TTS_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
 export const LLM_MODELS = [
   { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI", description: "Most capable, fastest" },
@@ -21,35 +28,48 @@ export const TTS_PROVIDERS = [
 ];
 
 export function getStoredApiKey() {
-  return localStorage.getItem(API_KEY_STORAGE) || "";
+  // Check env var first (for Vercel), then localStorage
+  return ENV_API_KEY || localStorage.getItem(API_KEY_STORAGE) || "";
 }
 
 export function getStoredApiBase() {
-  return localStorage.getItem(API_BASE_STORAGE) || DEFAULT_API_BASE;
+  return ENV_API_BASE || localStorage.getItem(API_BASE_STORAGE) || DEFAULT_API_BASE;
 }
 
 export function getStoredLlmModel() {
-  return localStorage.getItem(LLM_MODEL_STORAGE) || "gpt-4o";
+  return ENV_LLM_MODEL || localStorage.getItem(LLM_MODEL_STORAGE) || "gpt-4o";
 }
 
 export function getStoredTtsKey() {
-  return localStorage.getItem(TTS_KEY_STORAGE) || localStorage.getItem("jarvis-el-key") || "";
+  return ENV_TTS_KEY || localStorage.getItem(TTS_KEY_STORAGE) || localStorage.getItem("jarvis-el-key") || "";
 }
 
 export function saveApiKey(key) {
-  localStorage.setItem(API_KEY_STORAGE, key);
+  // Don't save if using env var
+  if (!ENV_API_KEY) {
+    localStorage.setItem(API_KEY_STORAGE, key);
+  }
 }
 
 export function saveApiBase(base) {
-  localStorage.setItem(API_BASE_STORAGE, base);
+  // Don't save if using env var
+  if (!ENV_API_BASE) {
+    localStorage.setItem(API_BASE_STORAGE, base);
+  }
 }
 
 export function saveLlmModel(model) {
-  localStorage.setItem(LLM_MODEL_STORAGE, model);
+  // Don't save if using env var
+  if (!ENV_LLM_MODEL) {
+    localStorage.setItem(LLM_MODEL_STORAGE, model);
+  }
 }
 
 export function saveTtsKey(key) {
-  localStorage.setItem(TTS_KEY_STORAGE, key);
+  // Don't save if using env var
+  if (!ENV_TTS_KEY) {
+    localStorage.setItem(TTS_KEY_STORAGE, key);
+  }
 }
 
 export function hasApiKey() {
