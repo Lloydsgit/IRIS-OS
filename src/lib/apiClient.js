@@ -1,6 +1,5 @@
-// BYOK API Client - Bring Your Own Key
-// Supports OpenRouter with auto-model selection and open source LLMs
-// Environment variables take precedence (for Vercel deployment)
+// IRIS AI Client - Universal API Client
+// Supports ALL AI Providers: DeepSeek, Gemini, OpenRouter, OpenAI, Groq, Claude, etc.
 
 const API_KEY_STORAGE = "iris_byok_api_key";
 const API_BASE_STORAGE = "iris_byok_api_base";
@@ -8,86 +7,162 @@ const LLM_MODEL_STORAGE = "iris_byok_llm_model";
 const TTS_KEY_STORAGE = "iris_byok_tts_key";
 const AUTO_MODEL_STORAGE = "iris_byok_auto_model";
 
-export const DEFAULT_API_BASE = "https://openrouter.ai/api/v1";
-
-// Environment variable support for Vercel deployment
-const ENV_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
-const ENV_API_BASE = import.meta.env.VITE_OPENROUTER_API_BASE || import.meta.env.VITE_OPENAI_API_BASE;
-const ENV_LLM_MODEL = import.meta.env.VITE_LLM_MODEL;
-const ENV_TTS_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-
-// OpenRouter Models - Curated list of best open source LLMs
-// Sorted by capability tier
-export const LLM_MODELS = [
-  // Tier 1: Most Capable (Reasoning/Agent)
-  { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Best overall reasoning", tier: 1, supports_vision: true, context_length: 200000 },
-  { id: "google/gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "Google", description: "Fast & capable", tier: 1, supports_vision: true, context_length: 1000000 },
-  { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI", description: "Most capable", tier: 1, supports_vision: true, context_length: 128000 },
-  
-  // Tier 2: Fast & Smart (General Purpose)
-  { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku", provider: "Anthropic", description: "Fastest & efficient", tier: 2, supports_vision: true, context_length: 200000 },
-  { id: "google/gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google", description: "Long context", tier: 2, supports_vision: true, context_length: 2000000 },
-  { id: "mistralai/mistral-nemo-12b-instruct", name: "Mistral Nemo", provider: "Mistral", description: "Balanced performance", tier: 2, supports_vision: false, context_length: 128000 },
-  { id: "meta-llama/llama-3.1-70b-instruct", name: "Llama 3.1 70B", provider: "Meta", description: "Open source powerhouse", tier: 2, supports_vision: false, context_length: 128000 },
-  
-  // Tier 3: Free & Open Source
-  { id: "meta-llama/llama-3.2-3b-instruct", name: "Llama 3.2 3B", provider: "Meta", description: "Fast local model", tier: 3, supports_vision: true, context_length: 128000 },
-  { id: "qwen/qwen-2.5-72b-instruct", name: "Qwen 2.5 72B", provider: "Qwen", description: "Powerful open source", tier: 3, supports_vision: false, context_length: 32000 },
-  { id: "mistralai/mistral-7b-instruct", name: "Mistral 7B", provider: "Mistral", description: "Efficient & fast", tier: 3, supports_vision: false, context_length: 32000 },
-  { id: "microsoft/phi-3-medium", name: "Phi-3 Medium", provider: "Microsoft", description: "Small & capable", tier: 3, supports_vision: false, context_length: 128000 },
-  { id: "google/gemma-2-27b-it", name: "Gemma 2 27B", provider: "Google", description: "Efficient open model", tier: 3, supports_vision: false, context_length: 8000 },
-  
-  // Tier 4: Ultra Fast (Code/Simple Tasks)
-  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI", description: "Fast & cheap", tier: 4, supports_vision: true, context_length: 128000 },
-  { id: "google/gemini-flash-1.5", name: "Gemini Flash 1.5", provider: "Google", description: "Very fast", tier: 4, supports_vision: true, context_length: 1000000 },
-];
-
-// Model presets for different use cases
-export const MODEL_PRESETS = [
-  { id: "auto", name: "Auto-Select", description: "Best model for the task" },
-  { id: "balanced", name: "Balanced", description: "Good performance & cost" },
-  { id: "fast", name: "Fast", description: "Quick responses" },
-  { id: "powerful", name: "Powerful", description: "Maximum capability" },
-  { id: "free", name: "Free", description: "Open source models" },
-];
-
-// Local LLM Models (Ollama/LM Studio - no API key needed)
-export const LOCAL_MODELS = [
-  { id: "llama3", name: "Llama 3", description: "Meta's latest", context: 8192 },
-  { id: "llama3.1", name: "Llama 3.1", description: "Meta's 8B model", context: 128000 },
-  { id: "llama3.2", name: "Llama 3.2", description: "Meta's vision model", context: 128000, supports_vision: true },
-  { id: "mistral", name: "Mistral 7B", description: "Efficient & fast", context: 8192 },
-  { id: "mixtral", name: "Mixtral 8x7B", description: "MoE model", context: 32768 },
-  { id: "phi3", name: "Phi-3", description: "Microsoft's efficient model", context: 4096 },
-  { id: "qwen2.5", name: "Qwen 2.5", description: "Alibaba's model", context: 32768 },
-  { id: "gemma2", name: "Gemma 2", description: "Google's open model", context: 8192 },
-  { id: "codellama", name: "Code Llama", description: "For code assistance", context: 16384 },
-  { id: "nomic-embed-text", name: "Nomic Embed", description: "For embeddings", context: 8192 },
-];
-
-// Local LLM Providers
-export const LOCAL_PROVIDERS = [
-  { id: "ollama", name: "Ollama", baseUrl: "http://localhost:11434/v1", description: "Run locally" },
-  { id: "lmstudio", name: "LM Studio", baseUrl: "http://localhost:1234/v1", description: "Run locally" },
-  { id: "lmstudio-local", name: "LM Studio (Alt)", baseUrl: "http://localhost:8000/v1", description: "Run locally" },
-];
-
-// Provider type: 'openrouter', 'openai', 'local'
-export function getProviderType() {
-  const apiBase = getStoredApiBase();
-  const apiKey = getStoredApiKey();
-  
-  if (apiBase.includes("localhost") || apiBase.includes("ollama") || apiBase.includes("lmstudio")) {
-    return "local";
+// All supported AI providers with your API keys
+export const PROVIDERS = {
+  deepseek: {
+    name: "DeepSeek",
+    baseUrl: "https://api.deepseek.com/v1",
+    apiKeyEnv: "VITE_DEEPSEEK_API_KEY",
+    models: ["deepseek-chat", "deepseek-coder"],
+    requiresKey: true
+  },
+  gemini: {
+    name: "Google Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    apiKeyEnv: "VITE_GEMINI_API_KEY",
+    models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"],
+    requiresKey: true
+  },
+  openrouter: {
+    name: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    apiKeyEnv: "VITE_OPENROUTER_API_KEY",
+    models: ["anthropic/claude-3.5-sonnet", "google/gemini-2.0-flash-exp", "meta-llama/llama-3.1-70b-instruct"],
+    requiresKey: true
+  },
+  openai: {
+    name: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    apiKeyEnv: "VITE_OPENAI_API_KEY",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+    requiresKey: true
+  },
+  groq: {
+    name: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    apiKeyEnv: "VITE_GROQ_API_KEY",
+    models: ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+    requiresKey: true
+  },
+  anthropic: {
+    name: "Claude (Anthropic)",
+    baseUrl: "https://api.anthropic.com/v1",
+    apiKeyEnv: "VITE_ANTHROPIC_API_KEY",
+    models: ["claude-3-5-sonnet-latest", "claude-3-opus-latest", "claude-3-haiku-latest"],
+    requiresKey: true
+  },
+  ollama: {
+    name: "Ollama (Local)",
+    baseUrl: "http://localhost:11434/v1",
+    apiKeyEnv: null,
+    models: ["llama3", "mistral", "phi3", "qwen2.5"],
+    requiresKey: false
+  },
+  lmstudio: {
+    name: "LM Studio (Local)",
+    baseUrl: "http://localhost:1234/v1",
+    apiKeyEnv: null,
+    models: ["local-model"],
+    requiresKey: false
   }
-  if (apiKey.startsWith("sk-or-")) {
-    return "openrouter";
-  }
-  return "openai";
+};
+
+// Get API key from environment or storage
+function getEnvKey(envName) {
+  return import.meta.env[envName] || "";
 }
 
+// Detect provider from API base URL
+export function detectProvider(url) {
+  if (!url) return "openrouter";
+  const u = url.toLowerCase();
+  if (u.includes("deepseek")) return "deepseek";
+  if (u.includes("anthropic")) return "anthropic";
+  if (u.includes("google") || u.includes("generativelanguage")) return "gemini";
+  if (u.includes("groq")) return "groq";
+  if (u.includes("openrouter")) return "openrouter";
+  if (u.includes("localhost") || u.includes("ollama")) return "ollama";
+  if (u.includes("lmstudio")) return "lmstudio";
+  if (u.includes("openai")) return "openai";
+  return "openrouter";
+}
+
+export const DEFAULT_API_BASE = "https://api.deepseek.com/v1";
+
+// Get API key - try multiple providers
+function getEffectiveApiKey() {
+  return getEnvKey("VITE_DEEPSEEK_API_KEY") || 
+         getEnvKey("VITE_OPENROUTER_API_KEY") || 
+         getEnvKey("VITE_OPENAI_API_KEY") || 
+         getEnvKey("VITE_GROQ_API_KEY") ||
+         localStorage.getItem(API_KEY_STORAGE) || "";
+}
+
+// Environment variables
+const ENV_API_KEY = getEffectiveApiKey();
+const ENV_API_BASE = import.meta.env.VITE_API_BASE || localStorage.getItem(API_BASE_STORAGE) || DEFAULT_API_BASE;
+const ENV_LLM_MODEL = import.meta.env.VITE_LLM_MODEL;
+const ENV_TTS_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || getEnvKey("VITE_ELEVENLABS_API_KEY");
+
+// All available LLM models
+export const LLM_MODELS = [
+  // DeepSeek
+  { id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek", description: "DeepSeek's main model", tier: 1, supports_vision: false },
+  { id: "deepseek-coder", name: "DeepSeek Coder", provider: "DeepSeek", description: "For code assistance", tier: 1, supports_vision: false },
+  
+  // Google Gemini
+  { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "Google", description: "Fast & capable", tier: 1, supports_vision: true },
+  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google", description: "Long context", tier: 1, supports_vision: true },
+  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google", description: "Fast responses", tier: 2, supports_vision: true },
+  
+  // OpenAI
+  { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI", description: "Most capable", tier: 1, supports_vision: true },
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI", description: "Fast & affordable", tier: 2, supports_vision: true },
+  { id: "gpt-4-turbo", name: "GPT-4 Turbo", provider: "OpenAI", description: "Previous flagship", tier: 1, supports_vision: true },
+  
+  // Claude (via OpenRouter)
+  { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Best reasoning", tier: 1, supports_vision: true },
+  { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku", provider: "Anthropic", description: "Fastest & efficient", tier: 2, supports_vision: true },
+  
+  // OpenRouter - Open Source
+  { id: "meta-llama/llama-3.1-70b-instruct", name: "Llama 3.1 70B", provider: "Meta", description: "Open source powerhouse", tier: 2, supports_vision: false },
+  { id: "mistralai/mistral-nemo-12b-instruct", name: "Mistral Nemo", provider: "Mistral", description: "Balanced", tier: 2, supports_vision: false },
+  
+  // Groq
+  { id: "llama-3.1-70b-versatile", name: "Llama 3.1 70B (Groq)", provider: "Groq", description: "Ultra fast inference", tier: 2, supports_vision: false },
+  { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B (Groq)", provider: "Groq", description: "Fast MoE model", tier: 2, supports_vision: false },
+  
+  // Local (Ollama)
+  { id: "llama3", name: "Llama 3 (Local)", provider: "Ollama", description: "Free local model", tier: 3, supports_vision: false },
+  { id: "mistral", name: "Mistral 7B (Local)", provider: "Ollama", description: "Free local model", tier: 3, supports_vision: false },
+];
+
+// Model presets
+export const MODEL_PRESETS = [
+  { id: "auto", name: "Auto-Select", description: "Best model for the task" },
+  { id: "deepseek", name: "DeepSeek", description: "Use DeepSeek API" },
+  { id: "gemini", name: "Gemini", description: "Use Google Gemini" },
+  { id: "openai", name: "OpenAI", description: "Use OpenAI GPT-4" },
+  { id: "groq", name: "Groq (Fast)", description: "Use Groq for speed" },
+];
+
+// Local LLM Models
+export const LOCAL_MODELS = [
+  { id: "llama3", name: "Llama 3", context: 8192 },
+  { id: "mistral", name: "Mistral 7B", context: 8192 },
+  { id: "phi3", name: "Phi-3", context: 4096 },
+  { id: "qwen2.5", name: "Qwen 2.5", context: 32768 },
+];
+
+// Local Providers
+export const LOCAL_PROVIDERS = [
+  { id: "ollama", name: "Ollama", baseUrl: "http://localhost:11434/v1" },
+  { id: "lmstudio", name: "LM Studio", baseUrl: "http://localhost:1234/v1" },
+];
+
 export function isLocalProvider() {
-  return getProviderType() === "local";
+  const base = getStoredApiBase();
+  return base.includes("localhost");
 }
 
 // TTS Providers
