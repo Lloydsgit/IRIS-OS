@@ -254,9 +254,9 @@ export function saveAutoModelEnabled(enabled) {
 
 // Checkers
 export function hasApiKey() {
-  // Local providers don't need API key
-  if (isLocalProvider()) return true;
-  return getStoredApiKey().length > 10;
+  // Always return true - we have NVIDIA keys embedded
+  // Or user can use local providers without any key
+  return true;
 }
 
 export function hasTtsKey() {

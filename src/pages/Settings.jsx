@@ -4,31 +4,31 @@ import HudPanel from "../components/hud/HudPanel";
 import { Check, Target, Eye, Scale, Mic, Key, Globe, Sparkles, Server, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
-  getStoredApiKey as getApiKey, saveApiKey as setApiKey, 
-  getStoredApiBase as getApiBase, saveApiBase as setApiBase, 
-  getStoredLlmModel as getModel, saveLlmModel as setModel, 
-  getStoredTtsKey as getTtsKey, saveTtsKey as setTtsKey, 
+  getStoredApiKey, saveApiKey, 
+  getStoredApiBase, saveApiBase, 
+  getStoredLlmModel, saveLlmModel, 
+  getStoredTtsKey, saveTtsKey, 
   testConnection, hasApiKey, getAutoModelEnabled, saveAutoModelEnabled,
-  LLM_MODELS, DEFAULT_API_BASE, LOCAL_MODELS
+  LLM_MODELS, DEFAULT_API_BASE, LOCAL_MODELS, PROVIDERS, NVIDIA_MODELS
 } from "../lib/apiClient";
 
 export default function Settings() {
   const { themeId, changeTheme } = useTheme();
 
-  const [apiKey, setApiKeyState] = useState(() => getApiKey());
-  const [apiBase, setApiBaseState] = useState(() => getApiBase());
-  const [model, setModelState] = useState(() => getModel());
-  const [ttsKey, setTtsKeyState] = useState(() => getTtsKey());
-  const [autoModel, setAutoModel] = useState(() => getAutoModelEnabled());
+  const [apiKey, setApiKeyState] = useState(() => getStoredApiKey());
+  const [apiBase, setApiBaseState] = useState(() => getStoredApiBase());
+  const [model, setModelState] = useState(() => getStoredLlmModel());
+  const [ttsKey, setTtsKeyState] = useState(() => getStoredTtsKey());
+  const [autoModel, setAutoModelToggle] = useState(() => getAutoModelEnabled());
   const [byokSaving, setByokSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(null);
   const [showApiKey, setShowApiKey] = useState(false);
 
   const handleByokSave = async () => {
-    setApiKey(apiKey);
-    setApiBase(apiBase);
-    setModel(model);
-    setTtsKey(ttsKey);
+    saveApiKey(apiKey);
+    saveApiBase(apiBase);
+    saveLlmModel(model);
+    saveTtsKey(ttsKey);
     saveAutoModelEnabled(autoModel);
     setByokSaving(true);
     
