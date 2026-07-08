@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { hasApiKey } from '@/lib/apiClient';
 
 const AuthContext = createContext();
+
+// Always authenticated - we have NVIDIA keys embedded
+const alwaysHasApiKey = () => true;
 
 // BYOK Model - No authentication required, just check for API key
 export const AuthProvider = ({ children }) => {
@@ -16,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // BYOK model: Check if API key is configured
     const checkApiKey = () => {
-      if (hasApiKey()) {
+      if (alwaysHasApiKey()) {
         setIsAuthenticated(true);
         setUser({ id: 'local-user', name: 'User', apiKeyConfigured: true });
       } else {
@@ -43,13 +45,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const checkUserAuth = async () => {
-    setIsAuthenticated(hasApiKey());
+    setIsAuthenticated(alwaysHasApiKey());
   };
 
   const checkAppState = async () => {
     setAuthChecked(true);
-    setIsAuthenticated(hasApiKey());
-    if (!hasApiKey()) {
+    setIsAuthenticated(alwaysHasApiKey());
+    if (!alwaysHasApiKey()) {
       setAuthError({
         type: 'no_api_key',
         message: 'No API key configured. Please add your API key in Settings.'
