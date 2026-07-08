@@ -9,63 +9,97 @@ const AUTO_MODEL_STORAGE = "iris_byok_auto_model";
 
 // All supported AI providers with your API keys
 export const PROVIDERS = {
+  nvidia: {
+    name: "NVIDIA Integrate",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    apiKeyEnv: "VITE_NVIDIA_API_KEY",
+    models: [
+      "z-ai/glm-5.2",
+      "nvidia/nemotron-3-ultra-550b-a55b",
+      "stepfun-ai/step-3.5-flash"
+    ],
+    requiresKey: true,
+    priority: 1 // Higher = tried first
+  },
   deepseek: {
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com/v1",
     apiKeyEnv: "VITE_DEEPSEEK_API_KEY",
     models: ["deepseek-chat", "deepseek-coder"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 2
   },
   gemini: {
     name: "Google Gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
     apiKeyEnv: "VITE_GEMINI_API_KEY",
     models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 3
   },
   openrouter: {
     name: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     apiKeyEnv: "VITE_OPENROUTER_API_KEY",
     models: ["anthropic/claude-3.5-sonnet", "google/gemini-2.0-flash-exp", "meta-llama/llama-3.1-70b-instruct"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 4
   },
   openai: {
     name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
     apiKeyEnv: "VITE_OPENAI_API_KEY",
     models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 5
   },
   groq: {
     name: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
     apiKeyEnv: "VITE_GROQ_API_KEY",
     models: ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 6
   },
   anthropic: {
     name: "Claude (Anthropic)",
     baseUrl: "https://api.anthropic.com/v1",
     apiKeyEnv: "VITE_ANTHROPIC_API_KEY",
     models: ["claude-3-5-sonnet-latest", "claude-3-opus-latest", "claude-3-haiku-latest"],
-    requiresKey: true
+    requiresKey: true,
+    priority: 7
   },
   ollama: {
     name: "Ollama (Local)",
     baseUrl: "http://localhost:11434/v1",
     apiKeyEnv: null,
     models: ["llama3", "mistral", "phi3", "qwen2.5"],
-    requiresKey: false
+    requiresKey: false,
+    priority: 10 // Local = last resort
   },
   lmstudio: {
     name: "LM Studio (Local)",
     baseUrl: "http://localhost:1234/v1",
     apiKeyEnv: null,
     models: ["local-model"],
-    requiresKey: false
+    requiresKey: false,
+    priority: 11
   }
 };
+
+// NVIDIA API Keys
+const NVIDIA_KEYS = [
+  "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",
+  "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",
+  "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"
+];
+
+// NVIDIA models with their keys
+export const NVIDIA_MODELS = [
+  { id: "z-ai/glm-5.2", name: "GLM-5.2", provider: "NVIDIA", description: "Fast reasoning", keyIndex: 0 },
+  { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 550B", provider: "NVIDIA", description: "Ultra powerful", keyIndex: 1 },
+  { id: "stepfun-ai/step-3.5-flash", name: "Step-3.5 Flash", provider: "NVIDIA", description: "Quick responses", keyIndex: 2 }
+];
 
 // Get API key from environment or storage
 function getEnvKey(envName) {
@@ -102,10 +136,15 @@ function getEffectiveApiKey() {
 const ENV_API_KEY = getEffectiveApiKey();
 const ENV_API_BASE = import.meta.env.VITE_API_BASE || localStorage.getItem(API_BASE_STORAGE) || DEFAULT_API_BASE;
 const ENV_LLM_MODEL = import.meta.env.VITE_LLM_MODEL;
-const ENV_TTS_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || getEnvKey("VITE_ELEVENLABS_API_KEY");
+const ENV_TTS_KEY = getEnvKey("VITE_ELEVENLABS_API_KEY");
 
 // All available LLM models
 export const LLM_MODELS = [
+  // NVIDIA Integrate (Primary - Most Powerful)
+  { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 550B", provider: "NVIDIA", description: "Ultra powerful reasoning", tier: 0, supports_vision: false },
+  { id: "z-ai/glm-5.2", name: "GLM-5.2", provider: "NVIDIA", description: "Fast reasoning", tier: 0, supports_vision: false },
+  { id: "stepfun-ai/step-3.5-flash", name: "Step-3.5 Flash", provider: "NVIDIA", description: "Quick responses", tier: 0, supports_vision: false },
+  
   // DeepSeek
   { id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek", description: "DeepSeek's main model", tier: 1, supports_vision: false },
   { id: "deepseek-coder", name: "DeepSeek Coder", provider: "DeepSeek", description: "For code assistance", tier: 1, supports_vision: false },
@@ -276,26 +315,103 @@ async function apiFetch(endpoint, options = {}) {
   return response.json();
 }
 
-// LLM Integration - OpenRouter compatible
-export async function invokeLLM({ prompt, messages, model, temperature = 0.7, max_tokens = 1000, taskType = "general" }) {
+// LLM Integration with Fallback System
+export async function invokeLLM({ prompt, messages, model, temperature = 0.7, max_tokens = 2000, taskType = "general", systemPrompt = "You are IRIS, a hyper-intelligent AI assistant. Be direct, helpful, and concise." }) {
   const chatMessages = messages || [{ role: "user", content: prompt }];
+  const selectedModel = model || getStoredLlmModel();
   
-  let selectedModel = model || getStoredLlmModel();
-  if (getAutoModelEnabled() && !model) {
-    selectedModel = autoSelectModel(taskType);
+  // Try NVIDIA models first (with fallback)
+  const nvidiaResult = await tryNVIDIA(chatMessages, selectedModel, temperature, max_tokens, systemPrompt);
+  if (nvidiaResult) return nvidiaResult;
+  
+  // Try DeepSeek
+  const deepseekResult = await tryProvider("deepseek", chatMessages, "deepseek-chat", temperature, max_tokens, systemPrompt);
+  if (deepseekResult) return deepseekResult;
+  
+  // Try OpenRouter
+  const openrouterResult = await tryProvider("openrouter", chatMessages, "anthropic/claude-3.5-sonnet", temperature, max_tokens, systemPrompt);
+  if (openrouterResult) return openrouterResult;
+  
+  // Try Groq (fast)
+  const groqResult = await tryProvider("groq", chatMessages, "llama-3.1-70b-versatile", temperature, max_tokens, systemPrompt);
+  if (groqResult) return groqResult;
+  
+  // Try OpenAI
+  const openaiResult = await tryProvider("openai", chatMessages, "gpt-4o-mini", temperature, max_tokens, systemPrompt);
+  if (openaiResult) return openaiResult;
+  
+  throw new Error("All AI providers failed. Please check your internet connection or API keys.");
+}
+
+// Try NVIDIA Integrate API
+async function tryNVIDIA(chatMessages, preferredModel, temperature, max_tokens, systemPrompt) {
+  const allMessages = [{ role: "system", content: systemPrompt }, ...chatMessages];
+  
+  // Try each NVIDIA model with its specific key
+  for (const nvidiaModel of NVIDIA_MODELS) {
+    const apiKey = NVIDIA_KEYS[nvidiaModel.keyIndex];
+    if (!apiKey) continue;
+    
+    try {
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: nvidiaModel.id,
+          messages: allMessages,
+          temperature,
+          max_tokens
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+    } catch (e) {
+      console.warn(`NVIDIA model ${nvidiaModel.id} failed:`, e.message);
+      continue;
+    }
   }
+  return null;
+}
+
+// Try a specific provider
+async function tryProvider(providerId, chatMessages, defaultModel, temperature, max_tokens, systemPrompt) {
+  const provider = PROVIDERS[providerId];
+  if (!provider) return null;
   
-  const response = await apiFetch("/chat/completions", {
-    method: "POST",
-    body: JSON.stringify({
-      model: selectedModel,
-      messages: chatMessages,
-      temperature,
-      max_tokens,
-    }),
-  });
+  const apiKey = getEnvKey(provider.apiKeyEnv) || getStoredApiKey();
+  if (provider.requiresKey && !apiKey) return null;
   
-  return response.choices?.[0]?.message?.content || "";
+  const allMessages = [{ role: "system", content: systemPrompt }, ...chatMessages];
+  
+  try {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: defaultModel,
+        messages: allMessages,
+        temperature,
+        max_tokens
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+  } catch (e) {
+    console.warn(`Provider ${providerId} failed:`, e.message);
+  }
+  return null;
 }
 
 // TTS - OpenAI TTS
