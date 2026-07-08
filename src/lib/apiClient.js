@@ -317,29 +317,39 @@ async function apiFetch(endpoint, options = {}) {
 
 // LLM Integration with Fallback System
 export async function invokeLLM({ prompt, messages, model, temperature = 0.7, max_tokens = 2000, taskType = "general", systemPrompt = "You are IRIS, a hyper-intelligent AI assistant. Be direct, helpful, and concise." }) {
+  console.log("invokeLLM called");
   const chatMessages = messages || [{ role: "user", content: prompt }];
   const selectedModel = model || getStoredLlmModel();
   
   // Try NVIDIA models first (with fallback)
+  console.log("Trying NVIDIA...");
   const nvidiaResult = await tryNVIDIA(chatMessages, selectedModel, temperature, max_tokens, systemPrompt);
-  if (nvidiaResult) return nvidiaResult;
+  if (nvidiaResult) {
+    console.log("NVIDIA success!");
+    return nvidiaResult;
+  }
   
   // Try DeepSeek
+  console.log("Trying DeepSeek...");
   const deepseekResult = await tryProvider("deepseek", chatMessages, "deepseek-chat", temperature, max_tokens, systemPrompt);
   if (deepseekResult) return deepseekResult;
   
   // Try OpenRouter
+  console.log("Trying OpenRouter...");
   const openrouterResult = await tryProvider("openrouter", chatMessages, "anthropic/claude-3.5-sonnet", temperature, max_tokens, systemPrompt);
   if (openrouterResult) return openrouterResult;
   
   // Try Groq (fast)
+  console.log("Trying Groq...");
   const groqResult = await tryProvider("groq", chatMessages, "llama-3.1-70b-versatile", temperature, max_tokens, systemPrompt);
   if (groqResult) return groqResult;
   
   // Try OpenAI
+  console.log("Trying OpenAI...");
   const openaiResult = await tryProvider("openai", chatMessages, "gpt-4o-mini", temperature, max_tokens, systemPrompt);
   if (openaiResult) return openaiResult;
   
+  console.error("All providers failed!");
   throw new Error("All AI providers failed. Please check your internet connection or API keys.");
 }
 
@@ -347,10 +357,17 @@ export async function invokeLLM({ prompt, messages, model, temperature = 0.7, ma
 async function tryNVIDIA(chatMessages, preferredModel, temperature, max_tokens, systemPrompt) {
   const allMessages = [{ role: "system", content: systemPrompt }, ...chatMessages];
   
+  console.log("tryNVIDIA called with", chatMessages.length, "messages");
+  
   // Try each NVIDIA model with its specific key
   for (const nvidiaModel of NVIDIA_MODELS) {
     const apiKey = NVIDIA_KEYS[nvidiaModel.keyIndex];
-    if (!apiKey) continue;
+    if (!apiKey) {
+      console.warn(`No API key for ${nvidiaModel.id}`);
+      continue;
+    }
+    
+    console.log(`Trying NVIDIA model: ${nvidiaModel.id}`);
     
     try {
       const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
@@ -367,15 +384,22 @@ async function tryNVIDIA(chatMessages, preferredModel, temperature, max_tokens, 
         })
       });
       
+      console.log(`NVIDIA ${nvidiaModel.id} response status:`, response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log(`NVIDIA ${nvidiaModel.id} success:`, data.choices?.[0]?.message?.content?.substring(0, 50));
         return data.choices?.[0]?.message?.content || "";
+      } else {
+        const errorText = await response.text();
+        console.error(`NVIDIA ${nvidiaModel.id} error:`, response.status, errorText);
       }
     } catch (e) {
-      console.warn(`NVIDIA model ${nvidiaModel.id} failed:`, e.message);
+      console.error(`NVIDIA model ${nvidiaModel.id} exception:`, e.message);
       continue;
     }
   }
+  console.log("All NVIDIA models failed");
   return null;
 }
 

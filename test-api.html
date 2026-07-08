@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test NVIDIA API</title></head>
+<body>
+<h1>Testing NVIDIA API</h1>
+<div id="result"></div>
+<script>
+const NVIDIA_KEYS = [
+  "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",
+  "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",
+  "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"
+];
+
+const MODELS = [
+  { id: "z-ai/glm-5.2", name: "GLM-5.2", keyIndex: 0 },
+  { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron", keyIndex: 1 },
+  { id: "stepfun-ai/step-3.5-flash", name: "Step-3.5", keyIndex: 2 }
+];
+
+async function testNVIDIA() {
+  for (const model of MODELS) {
+    const key = NVIDIA_KEYS[model.keyIndex];
+    try {
+      document.getElementById('result').innerHTML += `<p>Testing ${model.name} with key ${key.substring(0,10)}...</p>`;
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: model.id,
+          messages: [{"role":"user","content":"Hi"}],
+          max_tokens: 30
+        })
+      });
+      const data = await response.json();
+      if (data.choices && data.choices[0].message) {
+        document.getElementById('result').innerHTML += `<p style="color:green">✅ ${model.name}: ${data.choices[0].message.content}</p>`;
+      } else {
+        document.getElementById('result').innerHTML += `<p style="color:red">❌ ${model.name}: ${JSON.stringify(data)}</p>`;
+      }
+    } catch (e) {
+      document.getElementById('result').innerHTML += `<p style="color:red">❌ ${model.name} ERROR: ${e.message}</p>`;
+    }
+  }
+}
+
+testNVIDIA();
+</script>
+</body>
+</html>
